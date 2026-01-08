@@ -52,9 +52,19 @@ router.post("/forgot-password", async (req, res, next) => {
     admin.resetOTPExpiry = Date.now() + 10 * 60 * 1000;
     await admin.save();
 
-    await sendOTP(email, otp);
+    /* 🔑 IMPORTANT FIX:
+       Respond immediately to avoid timeout */
+    res.json({ success: true });
 
-    return res.json({ success: true });
+    /* 🔑 Send email AFTER response (non-blocking) */
+    setImmediate(async () => {
+      try {
+        await sendOTP(email, otp);
+      } catch (err) {
+        console.error("OTP email failed:", err.message);
+      }
+    });
+
   } catch (err) {
     return next(err);
   }
@@ -102,7 +112,7 @@ router.post("/reset-password", async (req, res, next) => {
   }
 });
 
-/* ================= TEST ROUTE (OPTIONAL) ================= */
+/* ================= TEST ROUTE ================= */
 router.get("/test", (req, res) => {
   res.json({ ok: true });
 });

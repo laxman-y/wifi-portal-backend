@@ -1,11 +1,15 @@
 function getCurrentTime() {
   const now = new Date();
 
-  // Force local time consistency (important for production servers)
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
+  // Convert server time (UTC on Render) to IST (UTC + 5:30)
+  const istTime = new Date(
+    now.getTime() + (5 * 60 + 30) * 60 * 1000
+  );
 
-  return `${hours}:${minutes}`; // HH:MM
+  const hours = String(istTime.getHours()).padStart(2, "0");
+  const minutes = String(istTime.getMinutes()).padStart(2, "0");
+
+  return `${hours}:${minutes}`; // HH:MM (IST)
 }
 
 function isWithinShift(shifts = []) {
@@ -28,17 +32,22 @@ function minutesUntil(endTime) {
   if (!endTime) return 0;
 
   const [eh, em] = endTime.split(":").map(Number);
-  const now = new Date();
-  const end = new Date();
 
+  // Current IST time
+  const now = new Date();
+  const istNow = new Date(
+    now.getTime() + (5 * 60 + 30) * 60 * 1000
+  );
+
+  const end = new Date(istNow);
   end.setHours(eh, em, 0, 0);
 
   // Handle overnight shift end
-  if (end < now) {
+  if (end < istNow) {
     end.setDate(end.getDate() + 1);
   }
 
-  return Math.max(0, Math.floor((end - now) / 60000));
+  return Math.max(0, Math.floor((end - istNow) / 60000));
 }
 
 module.exports = { isWithinShift, minutesUntil };

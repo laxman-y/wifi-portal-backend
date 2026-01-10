@@ -34,6 +34,13 @@ app.use(
 app.use(express.json());
 
 /* -------------------- ROUTES -------------------- */
+app.get("/__health", (req, res) => {
+  res.json({
+    status: "ok",
+    time: new Date().toISOString()
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/session", sessionRoutes);
 app.use("/api/router", routerRoutes);

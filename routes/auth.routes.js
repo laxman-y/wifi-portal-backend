@@ -47,14 +47,19 @@ router.post("/captive/login", async (req, res) => {
     }
 
     /* ================= MARK SESSION (NO ROUTER YET) ================= */
-    student.activeMac = mac;
-    student.lastSeen = new Date();
-    await student.save();
+  // mark session
+student.activeMac = mac;
+student.lastSeen = new Date();
+await student.save();
 
-    return res.json({
-      status: "approved",
-      shiftEndsAt: activeShift.end
-    });
+// 🔓 UNLOCK INTERNET
+await allowMac(mac);
+
+return res.json({
+  status: "approved",
+  shiftEndsAt: activeShift.end
+});
+
 
   } catch (err) {
     console.error(err);

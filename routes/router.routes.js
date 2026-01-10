@@ -3,30 +3,30 @@ const Student = require("../models/Student");
 
 const router = express.Router();
 
-/*
-  Router polling API
-  Returns all currently allowed MACs
-*/
-router.get("/allowed-macs", async (req, res) => {
+/**
+ * Router polls this endpoint
+ * Returns all currently allowed MACs
+ */
+router.get("/approved-macs", async (req, res) => {
   try {
     const now = new Date();
 
     const students = await Student.find({
-      activeMac: { $exists: true, $ne: null },
       isActive: true,
+      activeMac: { $ne: null },
       shiftEndTime: { $gt: now }
     }).select("activeMac shiftEndTime");
 
-    const macs = students.map(s => ({
-      mac: s.activeMac,
-      until: s.shiftEndTime
-    }));
-
-    res.json({ macs });
-
+    return res.json({
+      success: true,
+      macs: students.map(s => ({
+        mac: s.activeMac,
+        until: s.shiftEndTime
+      }))
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ macs: [] });
+    console.error("Router poll error:", err);
+    return res.status(500).json({ success: false });
   }
 });
 

@@ -7,6 +7,44 @@ const authMiddleware = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
+
+router.post("/captive/login", async (req, res) => {
+  try {
+    const { mobile, password, mac } = req.body;
+
+    const student = await Student.findOne({ mobile });
+    if (!student) {
+      return res.json({ status: "rejected", reason: "invalid" });
+    }
+
+    const match = await bcrypt.compare(password, student.password);
+    if (!match) {
+      return res.json({ status: "rejected", reason: "invalid" });
+    }
+
+    const activeShift = isWithinShift(student.shifts);
+    if (!activeShift) {
+      return res.json({ status: "rejected", reason: "outside_shift" });
+    }
+
+    // Allow re-login for same MAC
+    student.isActive = true;
+    student.activeMac = mac;
+    student.lastSeen = new Date();
+    await student.save();
+
+    return res.json({
+      status: "approved",
+      sessionMinutes: minutesUntil(activeShift.end)
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.json({ status: "rejected", reason: "server_error" });
+  }
+});
+
+
 router.post("/login", async (req, res, next) => {
   try {
     const { mobile, password } = req.body;

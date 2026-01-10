@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const Student = require("../models/Student");
 const { isWithinShift, minutesUntil } = require("../utils/time.utils");
 const authMiddleware = require("../middleware/auth.middleware");
-const { allowMac } = require("../utils/routerAuth");
+// const { allowMac } = require("../utils/routerAuth");
 
 
 const router = express.Router();

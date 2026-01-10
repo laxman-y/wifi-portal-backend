@@ -12,21 +12,22 @@ const app = express();
 app.use(
   cors({
     origin: (origin, callback) => {
-      const allowedOrigins = [
-        "http://localhost:5174",
-        process.env.FRONTEND_URL
-      ];
-
-      // allow requests with no origin (mobile apps, curl)
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow captive portal & non-browser clients
+      if (
+        !origin ||
+        origin.startsWith("http://192.168.") ||
+        origin === process.env.FRONTEND_URL ||
+        origin === "http://localhost:5174"
+      ) {
         callback(null, true);
       } else {
-        callback(new Error("CORS not allowed"));
+        callback(null, false);
       }
     },
     credentials: true
   })
 );
+
 
 app.use(express.json());
 

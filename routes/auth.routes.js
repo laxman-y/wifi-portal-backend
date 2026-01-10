@@ -46,20 +46,18 @@ router.post("/captive/login", async (req, res) => {
       });
     }
 
-    /* ================= MARK SESSION (NO ROUTER YET) ================= */
-  // mark session
-student.activeMac = mac;
-student.lastSeen = new Date();
-await student.save();
+    /* ================= MARK SESSION ================= */
+    student.activeMac = mac;
+    student.isActive = true;
+    student.shiftEndTime = activeShift.end;
+    student.lastSeen = new Date();
+    await student.save();
 
-// 🔓 UNLOCK INTERNET
-await allowMac(mac);
-
-return res.json({
-  status: "approved",
-  shiftEndsAt: activeShift.end
-});
-
+    /* ================= RESPONSE (MISSING EARLIER) ================= */
+    return res.json({
+      status: "approved",
+      sessionMinutes: minutesUntil(activeShift.end)
+    });
 
   } catch (err) {
     console.error(err);

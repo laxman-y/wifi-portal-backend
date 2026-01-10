@@ -7,6 +7,9 @@ const authMiddleware = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
+router.post("/captive/login", (req, res) => {
+  return res.json({ test: "captive route works" });
+});
 
 router.post("/captive/login", async (req, res) => {
   try {

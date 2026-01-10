@@ -5,6 +5,8 @@ const cors = require("cors");
 
 const authRoutes = require("./routes/auth.routes");
 const sessionRoutes = require("./routes/session.routes");
+const routerRoutes = require("./routes/router.routes");
+
 
 const app = express();
 
@@ -34,6 +36,7 @@ app.use(express.json());
 /* -------------------- ROUTES -------------------- */
 app.use("/api/auth", authRoutes);
 app.use("/api/session", sessionRoutes);
+app.use("/api/router", routerRoutes);
 app.use("/api/router", require("./routes/router.routes"));
 app.use("/api/admin/auth", require("./routes/admin.auth.routes"));
 app.use("/api/admin/students", require("./routes/admin.students.routes"));

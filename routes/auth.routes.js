@@ -4,21 +4,22 @@ const jwt = require("jsonwebtoken");
 const Student = require("../models/Student");
 const { isWithinShift, minutesUntil } = require("../utils/time.utils");
 const authMiddleware = require("../middleware/auth.middleware");
-const RouterApproval = require("../models/RouterApproval");
-// const { allowMac } = require("../utils/routerAuth");
-
 
 const router = express.Router();
 
-
-
+/* =========================================================
+   CAPTIVE PORTAL LOGIN (USED BY VERCEL FRONTEND)
+   ========================================================= */
 router.post("/captive/login", async (req, res) => {
   try {
-    const { mobile, password, mac } = req.body;
+    let { mobile, password, mac } = req.body;
 
+    /* ---------- validation ---------- */
     if (!mobile || !password || !mac) {
       return res.json({ status: "rejected", reason: "missing_fields" });
     }
+
+    mac = mac.toLowerCase();
 
     const student = await Student.findOne({ mobile });
     if (!student) {
@@ -30,30 +31,23 @@ router.post("/captive/login", async (req, res) => {
       return res.json({ status: "rejected", reason: "invalid" });
     }
 
+    /* ---------- shift check ---------- */
     const activeShift = isWithinShift(student.shifts);
     if (!activeShift) {
       return res.json({ status: "rejected", reason: "outside_shift" });
     }
 
-    const expiresAt = activeShift.end;
-
-    /* ---- student session ---- */
-    student.activeMac = mac.toLowerCase();
+    /* ---------- ACTIVATE SESSION ---------- */
     student.isActive = true;
-    student.shiftEndTime = expiresAt;
+    student.activeMac = mac;
+    student.shiftEndTime = activeShift.end; // Date (CRITICAL)
     student.lastSeen = new Date();
-    await student.save();
 
-    /* ---- router approval (CRITICAL) ---- */
-    await RouterApproval.findOneAndUpdate(
-      { mac: mac.toLowerCase() },
-      { mac: mac.toLowerCase(), expiresAt },
-      { upsert: true }
-    );
+    await student.save();
 
     return res.json({
       status: "approved",
-      sessionMinutes: minutesUntil(expiresAt)
+      sessionMinutes: minutesUntil(activeShift.end)
     });
 
   } catch (err) {
@@ -62,20 +56,18 @@ router.post("/captive/login", async (req, res) => {
   }
 });
 
-
+/* =========================================================
+   NORMAL APP LOGIN (NOT USED BY ROUTER)
+   ========================================================= */
 router.post("/login", async (req, res, next) => {
   try {
     const { mobile, password } = req.body;
 
     const student = await Student.findOne({ mobile });
-    if (!student) {
-      return res.json({ success: false });
-    }
+    if (!student) return res.json({ success: false });
 
     const match = await bcrypt.compare(password, student.password);
-    if (!match) {
-      return res.json({ success: false });
-    }
+    if (!match) return res.json({ success: false });
 
     if (student.isActive) {
       return res.json({
@@ -90,10 +82,6 @@ router.post("/login", async (req, res, next) => {
         success: false,
         message: "Outside allowed time"
       });
-    }
-
-    if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET not defined");
     }
 
     const token = jwt.sign(
@@ -112,20 +100,23 @@ router.post("/login", async (req, res, next) => {
       token,
       timeLeft: minutesUntil(activeShift.end) + " min"
     });
+
   } catch (err) {
-    return next(err); // handled by global error middleware
+    return next(err);
   }
 });
 
-/* ================= MANUAL LOGOUT ================= */
+/* =========================================================
+   LOGOUT (VERY IMPORTANT CLEANUP)
+   ========================================================= */
 router.post("/logout", authMiddleware, async (req, res, next) => {
   try {
     const student = req.student;
 
-    // Strict single-session preserved:
-    // Just end current session, NOT shift
     student.isActive = false;
     student.activeToken = null;
+    student.activeMac = null;       // 🔥 IMPORTANT
+    student.shiftEndTime = null;    // 🔥 IMPORTANT
     student.lastSeen = new Date();
 
     await student.save();

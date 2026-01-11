@@ -2,13 +2,17 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Student = require("../models/Student");
-const { isWithinShift, minutesUntil } = require("../utils/time.utils");
+const {
+  isWithinShift,
+  minutesUntil,
+  getShiftEndDate
+} = require("../utils/time.utils");
 const authMiddleware = require("../middleware/auth.middleware");
 
 const router = express.Router();
 
 /* =========================================================
-   CAPTIVE PORTAL LOGIN (USED BY VERCEL FRONTEND)
+   CAPTIVE PORTAL LOGIN (VERCEL FRONTEND)
    ========================================================= */
 router.post("/captive/login", async (req, res) => {
   try {
@@ -37,10 +41,13 @@ router.post("/captive/login", async (req, res) => {
       return res.json({ status: "rejected", reason: "outside_shift" });
     }
 
+    /* ---------- CALCULATE REAL EXPIRY ---------- */
+    const expiresAt = getShiftEndDate(activeShift.end);
+
     /* ---------- ACTIVATE SESSION ---------- */
     student.isActive = true;
     student.activeMac = mac;
-    student.shiftEndTime = activeShift.end; // Date (CRITICAL)
+    student.shiftEndTime = expiresAt; // ✅ REAL Date
     student.lastSeen = new Date();
 
     await student.save();
@@ -107,7 +114,7 @@ router.post("/login", async (req, res, next) => {
 });
 
 /* =========================================================
-   LOGOUT (VERY IMPORTANT CLEANUP)
+   LOGOUT (IMPORTANT CLEANUP)
    ========================================================= */
 router.post("/logout", authMiddleware, async (req, res, next) => {
   try {
@@ -115,8 +122,8 @@ router.post("/logout", authMiddleware, async (req, res, next) => {
 
     student.isActive = false;
     student.activeToken = null;
-    student.activeMac = null;       // 🔥 IMPORTANT
-    student.shiftEndTime = null;    // 🔥 IMPORTANT
+    student.activeMac = null;       // 🔥 REQUIRED
+    student.shiftEndTime = null;    // 🔥 REQUIRED
     student.lastSeen = new Date();
 
     await student.save();

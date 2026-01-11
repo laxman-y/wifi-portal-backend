@@ -1,53 +1,50 @@
-function getCurrentTime() {
+/**
+ * Converts server UTC time → IST Date
+ */
+function getNowIST() {
   const now = new Date();
-
-  // Convert server time (UTC on Render) to IST (UTC + 5:30)
-  const istTime = new Date(
-    now.getTime() + (5 * 60 + 30) * 60 * 1000
-  );
-
-  const hours = String(istTime.getHours()).padStart(2, "0");
-  const minutes = String(istTime.getMinutes()).padStart(2, "0");
-
-  return `${hours}:${minutes}`; // HH:MM (IST)
+  return new Date(now.getTime() + (5 * 60 + 30) * 60 * 1000);
 }
 
+/**
+ * Checks if current IST time is within any shift
+ * RETURNS: { start: Date, end: Date }  ← IMPORTANT
+ */
 function isWithinShift(shifts = []) {
-  const now = getCurrentTime();
+  const now = getNowIST();
 
-  return shifts.find(shift => {
-    if (!shift?.start || !shift?.end) return false;
+  for (const shift of shifts) {
+    if (!shift?.start || !shift?.end) continue;
 
-    // Normal shift (e.g. 10:00 → 18:00)
-    if (shift.start <= shift.end) {
-      return now >= shift.start && now <= shift.end;
+    const [sh, sm] = shift.start.split(":").map(Number);
+    const [eh, em] = shift.end.split(":").map(Number);
+
+    const start = new Date(now);
+    start.setHours(sh, sm, 0, 0);
+
+    const end = new Date(now);
+    end.setHours(eh, em, 0, 0);
+
+    // Overnight shift handling (22:00 → 02:00)
+    if (end <= start) {
+      end.setDate(end.getDate() + 1);
     }
 
-    // Overnight shift (e.g. 22:00 → 02:00)
-    return now >= shift.start || now <= shift.end;
-  });
-}
-
-function minutesUntil(endTime) {
-  if (!endTime) return 0;
-
-  const [eh, em] = endTime.split(":").map(Number);
-
-  // Current IST time
-  const now = new Date();
-  const istNow = new Date(
-    now.getTime() + (5 * 60 + 30) * 60 * 1000
-  );
-
-  const end = new Date(istNow);
-  end.setHours(eh, em, 0, 0);
-
-  // Handle overnight shift end
-  if (end < istNow) {
-    end.setDate(end.getDate() + 1);
+    if (now >= start && now <= end) {
+      return { start, end };
+    }
   }
 
-  return Math.max(0, Math.floor((end - istNow) / 60000));
+  return null;
+}
+
+/**
+ * Minutes remaining until shift end (Date)
+ */
+function minutesUntil(endDate) {
+  if (!(endDate instanceof Date)) return 0;
+  const diff = endDate - getNowIST();
+  return Math.max(0, Math.floor(diff / 60000));
 }
 
 module.exports = { isWithinShift, minutesUntil };

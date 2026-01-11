@@ -19,41 +19,43 @@ router.post("/captive/login", async (req, res) => {
     const { mobile, password } = req.body;
 
     if (!mobile || !password) {
-      return res.json({ status: "rejected", reason: "missing_fields" });
+      return res.json({ status: "rejected" });
     }
 
     const student = await Student.findOne({ mobile });
-    if (!student) {
-      return res.json({ status: "rejected", reason: "invalid" });
-    }
+    if (!student) return res.json({ status: "rejected" });
 
-    const match = await bcrypt.compare(password, student.password);
-    if (!match) {
-      return res.json({ status: "rejected", reason: "invalid" });
-    }
+    const ok = await bcrypt.compare(password, student.password);
+    if (!ok) return res.json({ status: "rejected" });
 
     const activeShift = isWithinShift(student.shifts);
     if (!activeShift) {
-      return res.json({ status: "rejected", reason: "outside_shift" });
+      return res.json({ status: "outside_shift" });
     }
 
-    /* MARK LOGIN REQUEST */
+    /* 🔥 GET CLIENT IP AUTOMATICALLY */
+    const clientIp =
+      req.headers["x-forwarded-for"]?.split(",")[0] ||
+      req.socket.remoteAddress;
+
+    /* MARK SESSION */
     student.isActive = true;
-    student.lastSeen = new Date();
+    student.pendingIp = clientIp;
+    student.activeMac = null;
     student.shiftEndTime = activeShift.end;
-    student.activeMac = null; // ← IMPORTANT
+    student.lastSeen = new Date();
     await student.save();
 
     return res.json({
       status: "approved",
-      wait: "router_will_attach_mac"
+      wait: true
     });
-
-  } catch (err) {
-    console.error(err);
-    return res.json({ status: "error" });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ status: "error" });
   }
 });
+
 
 
 /* =========================================================

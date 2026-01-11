@@ -2,14 +2,8 @@ const mongoose = require("mongoose");
 
 const ShiftSchema = new mongoose.Schema(
   {
-    start: {
-      type: String,
-      required: true // "06:00"
-    },
-    end: {
-      type: String,
-      required: true // "11:00"
-    }
+    start: { type: String, required: true }, // "06:00"
+    end: { type: String, required: true }    // "11:00"
   },
   { _id: false }
 );
@@ -21,35 +15,58 @@ const StudentSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+
     mobile: {
       type: String,
       unique: true,
       required: true,
       index: true
     },
+
     password: {
       type: String,
       required: true
     },
+
     shifts: {
       type: [ShiftSchema],
       default: []
     },
+
+    /* ===== CAPTIVE PORTAL FIELDS (CRITICAL) ===== */
+
     isActive: {
       type: Boolean,
-      default: false
+      default: false,
+      index: true
     },
+
+    activeMac: {
+      type: String,
+      default: null,
+      index: true
+    },
+
+    shiftEndTime: {
+      type: Date,
+      default: null,
+      index: true
+    },
+
+    /* ===== OPTIONAL ===== */
+
     activeToken: {
       type: String,
       default: null
     },
+
     lastSeen: {
       type: Date,
       default: null
     }
   },
   {
-    timestamps: true // createdAt, updatedAt
+    timestamps: true
   }
 );
 

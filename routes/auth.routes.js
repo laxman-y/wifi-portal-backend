@@ -4,66 +4,61 @@ const jwt = require("jsonwebtoken");
 const Student = require("../models/Student");
 const { isWithinShift, minutesUntil } = require("../utils/time.utils");
 const authMiddleware = require("../middleware/auth.middleware");
+const RouterApproval = require("../models/RouterApproval");
 // const { allowMac } = require("../utils/routerAuth");
 
 
 const router = express.Router();
 
 
+
 router.post("/captive/login", async (req, res) => {
   try {
     const { mobile, password, mac } = req.body;
 
-    /* ================= VALIDATION ================= */
     if (!mobile || !password || !mac) {
-      return res.json({
-        status: "rejected",
-        reason: "missing_fields"
-      });
+      return res.json({ status: "rejected", reason: "missing_fields" });
     }
 
     const student = await Student.findOne({ mobile });
     if (!student) {
-      return res.json({
-        status: "rejected",
-        reason: "invalid"
-      });
+      return res.json({ status: "rejected", reason: "invalid" });
     }
 
     const match = await bcrypt.compare(password, student.password);
     if (!match) {
-      return res.json({
-        status: "rejected",
-        reason: "invalid"
-      });
+      return res.json({ status: "rejected", reason: "invalid" });
     }
 
     const activeShift = isWithinShift(student.shifts);
     if (!activeShift) {
-      return res.json({
-        status: "rejected",
-        reason: "outside_shift"
-      });
+      return res.json({ status: "rejected", reason: "outside_shift" });
     }
 
-    /* ================= MARK SESSION ================= */
-    student.activeMac = mac;
+    const expiresAt = activeShift.end;
+
+    /* ---- student session ---- */
+    student.activeMac = mac.toLowerCase();
     student.isActive = true;
-    student.shiftEndTime = activeShift.end;
+    student.shiftEndTime = expiresAt;
     student.lastSeen = new Date();
     await student.save();
 
-    /* ================= RESPONSE (MISSING EARLIER) ================= */
+    /* ---- router approval (CRITICAL) ---- */
+    await RouterApproval.findOneAndUpdate(
+      { mac: mac.toLowerCase() },
+      { mac: mac.toLowerCase(), expiresAt },
+      { upsert: true }
+    );
+
     return res.json({
       status: "approved",
-      sessionMinutes: minutesUntil(activeShift.end)
+      sessionMinutes: minutesUntil(expiresAt)
     });
 
   } catch (err) {
-    console.error(err);
-    return res.json({
-      status: "error"
-    });
+    console.error("CAPTIVE LOGIN ERROR:", err);
+    return res.status(500).json({ status: "error" });
   }
 });
 

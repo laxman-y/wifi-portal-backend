@@ -2,72 +2,28 @@ const mongoose = require("mongoose");
 
 const ShiftSchema = new mongoose.Schema(
   {
-    start: { type: String, required: true }, // "06:00"
-    end: { type: String, required: true }    // "11:00"
+    start: { type: String, required: true },
+    end: { type: String, required: true }
   },
   { _id: false }
 );
 
 const StudentSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      required: true,
-      trim: true
-    },
+    name: String,
+    mobile: { type: String, unique: true, index: true },
+    password: String,
+    shifts: [ShiftSchema],
 
-    mobile: {
-      type: String,
-      unique: true,
-      required: true,
-      index: true
-    },
+    /* ===== CAPTIVE PORTAL FIELDS ===== */
+    isActive: { type: Boolean, default: false, index: true },
+    pendingIp: { type: String, default: null, index: true }, // 🔥 NEW
+    activeMac: { type: String, default: null, index: true },
+    shiftEndTime: { type: Date, default: null, index: true },
 
-    password: {
-      type: String,
-      required: true
-    },
-
-    shifts: {
-      type: [ShiftSchema],
-      default: []
-    },
-
-    /* ===== CAPTIVE PORTAL FIELDS (CRITICAL) ===== */
-
-    isActive: {
-      type: Boolean,
-      default: false,
-      index: true
-    },
-
-    activeMac: {
-      type: String,
-      default: null,
-      index: true
-    },
-
-    shiftEndTime: {
-      type: Date,
-      default: null,
-      index: true
-    },
-
-    /* ===== OPTIONAL ===== */
-
-    activeToken: {
-      type: String,
-      default: null
-    },
-
-    lastSeen: {
-      type: Date,
-      default: null
-    }
+    lastSeen: Date
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Student", StudentSchema);

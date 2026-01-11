@@ -16,14 +16,11 @@ const router = express.Router();
    ========================================================= */
 router.post("/captive/login", async (req, res) => {
   try {
-    let { mobile, password, mac } = req.body;
+    const { mobile, password } = req.body;
 
-    /* ---------- validation ---------- */
-    if (!mobile || !password || !mac) {
+    if (!mobile || !password) {
       return res.json({ status: "rejected", reason: "missing_fields" });
     }
-
-    mac = mac.toLowerCase();
 
     const student = await Student.findOne({ mobile });
     if (!student) {
@@ -35,33 +32,29 @@ router.post("/captive/login", async (req, res) => {
       return res.json({ status: "rejected", reason: "invalid" });
     }
 
-    /* ---------- shift check ---------- */
     const activeShift = isWithinShift(student.shifts);
     if (!activeShift) {
       return res.json({ status: "rejected", reason: "outside_shift" });
     }
 
-    /* ---------- CALCULATE REAL EXPIRY ---------- */
-    const expiresAt = getShiftEndDate(activeShift.end);
-
-    /* ---------- ACTIVATE SESSION ---------- */
+    /* MARK LOGIN REQUEST */
     student.isActive = true;
-    student.activeMac = mac;
-    student.shiftEndTime = expiresAt; // ✅ REAL Date
     student.lastSeen = new Date();
-
+    student.shiftEndTime = activeShift.end;
+    student.activeMac = null; // ← IMPORTANT
     await student.save();
 
     return res.json({
       status: "approved",
-      sessionMinutes: minutesUntil(activeShift.end)
+      wait: "router_will_attach_mac"
     });
 
   } catch (err) {
-    console.error("CAPTIVE LOGIN ERROR:", err);
-    return res.status(500).json({ status: "error" });
+    console.error(err);
+    return res.json({ status: "error" });
   }
 });
+
 
 /* =========================================================
    NORMAL APP LOGIN (NOT USED BY ROUTER)

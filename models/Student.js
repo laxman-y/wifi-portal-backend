@@ -2,26 +2,24 @@ const mongoose = require("mongoose");
 
 const ShiftSchema = new mongoose.Schema(
   {
-    start: { type: String, required: true },
-    end: { type: String, required: true }
+    start: { type: String, required: true }, // "06:00"
+    end: { type: String, required: true }    // "11:00"
   },
   { _id: false }
 );
 
 const StudentSchema = new mongoose.Schema(
   {
-    name: String,
-    mobile: { type: String, unique: true, index: true },
-    password: String,
-    shifts: [ShiftSchema],
+    name: { type: String, required: true },
+    mobile: { type: String, required: true, unique: true },
 
-    /* ===== CAPTIVE PORTAL FIELDS ===== */
-    isActive: { type: Boolean, default: false, index: true },
-    pendingIp: { type: String, default: null, index: true }, // 🔥 NEW
-    activeMac: { type: String, default: null, index: true },
-    shiftEndTime: { type: Date, default: null, index: true },
+    // 🔐 MAC stored ONCE (hashed)
+    macHash: { type: String, required: true, index: true },
 
-    lastSeen: Date
+    shifts: { type: [ShiftSchema], default: [] },
+
+    // Optional admin info
+    lastSeen: { type: Date, default: null }
   },
   { timestamps: true }
 );

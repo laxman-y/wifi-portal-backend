@@ -53,12 +53,16 @@ router.get("/approved-macs", async (req, res) => {
     const macs = [];
 
     for (const s of students) {
+      // ❗ HARD GUARD
+      if (!s.macHash) continue;
+      if (!Array.isArray(s.shifts) || !s.shifts.length) continue;
+
       const activeShift = getActiveShift(s.shifts);
       if (!activeShift) continue;
 
       const until = getShiftEndUTC(activeShift.end);
 
-      // ❗ extra safety
+      // ❗ ignore expired shifts
       if (until <= new Date()) continue;
 
       macs.push({

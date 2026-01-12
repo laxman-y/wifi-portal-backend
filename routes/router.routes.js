@@ -4,51 +4,70 @@ const Student = require("../models/Student");
 const router = express.Router();
 
 /* ================= TIME HELPERS ================= */
-function getISTMinutes() {
-  const now = new Date();
-  const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-  return ist.getHours() * 60 + ist.getMinutes();
+function getISTNow() {
+  return new Date(Date.now() + 5.5 * 60 * 60 * 1000);
 }
 
-function isShiftActive(shifts = []) {
-  if (!Array.isArray(shifts) || shifts.length === 0) return false;
+function getShiftEndUTC(endTime) {
+  const nowIST = getISTNow();
+  const [eh, em] = endTime.split(":").map(Number);
 
-  const nowMin = getISTMinutes();
+  const end = new Date(nowIST);
+  end.setHours(eh, em, 0, 0);
 
-  return shifts.some(s => {
-    if (!s.start || !s.end) return false;
+  // overnight shift
+  if (end < nowIST) {
+    end.setDate(end.getDate() + 1);
+  }
 
+  // convert IST → UTC
+  return new Date(end.getTime() - 5.5 * 60 * 60 * 1000);
+}
+
+function getActiveShift(shifts) {
+  const nowIST = getISTNow();
+  const nowMin = nowIST.getHours() * 60 + nowIST.getMinutes();
+
+  for (const s of shifts) {
     const [sh, sm] = s.start.split(":").map(Number);
     const [eh, em] = s.end.split(":").map(Number);
 
     const start = sh * 60 + sm;
     const end = eh * 60 + em;
 
-    // Normal shift
-    if (start <= end) {
-      return nowMin >= start && nowMin <= end;
+    if (
+      (start <= end && nowMin >= start && nowMin <= end) ||
+      (start > end && (nowMin >= start || nowMin <= end))
+    ) {
+      return s;
     }
-
-    // Overnight shift
-    return nowMin >= start || nowMin <= end;
-  });
+  }
+  return null;
 }
 
 /* ================= APPROVED MACS ================= */
 router.get("/approved-macs", async (req, res) => {
   try {
-    const students = await Student.find({
-      macHash: { $exists: true, $ne: null }
-    }).select("macHash shifts");
+    const students = await Student.find();
 
-    const approved = students
-      .filter(s => isShiftActive(s.shifts))
-      .map(s => s.macHash);
+    const macs = [];
 
-    return res.json({
-      success: true,
-      macs: approved
-    });
+    for (const s of students) {
+      const activeShift = getActiveShift(s.shifts);
+      if (!activeShift) continue;
+
+      const until = getShiftEndUTC(activeShift.end);
+
+      // ❗ extra safety
+      if (until <= new Date()) continue;
+
+      macs.push({
+        hash: s.macHash,
+        until
+      });
+    }
+
+    return res.json({ success: true, macs });
   } catch (err) {
     console.error("APPROVED MAC ERROR:", err);
     return res.status(500).json({ success: false });

@@ -4,18 +4,18 @@ const router = express.Router();
 
 /* ===== ROUTER → BACKEND (ONE TIME) ===== */
 router.post("/attach-mac", async (req, res) => {
-  const { ip, mac } = req.body;
-  if (!ip || !mac) return res.json({ ok: false });
+  const { mac } = req.body;
+  if (!mac) return res.json({ ok: false });
 
   const student = await Student.findOne({
     isActive: true,
-    pendingIp: ip
-  });
+    activeMac: null,
+    shiftEndTime: { $gt: new Date() }
+  }).sort({ updatedAt: -1 });
 
   if (!student) return res.json({ ok: false });
 
   student.activeMac = mac.toLowerCase();
-  student.pendingIp = null;
   await student.save();
 
   return res.json({ ok: true });

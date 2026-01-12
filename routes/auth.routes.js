@@ -33,17 +33,18 @@ router.post("/captive/login", async (req, res) => {
       return res.json({ status: "outside_shift" });
     }
 
-    /* 🔥 GET CLIENT IP AUTOMATICALLY */
+    /* 🔥 REAL CLIENT IP */
     const clientIp =
       req.headers["x-forwarded-for"]?.split(",")[0] ||
       req.socket.remoteAddress;
 
-    /* MARK SESSION */
+    /* 🔥 STORE PROPERLY */
     student.isActive = true;
     student.pendingIp = clientIp;
     student.activeMac = null;
-    student.shiftEndTime = activeShift.end;
+    student.shiftEndTime = getShiftEndDate(activeShift.end);
     student.lastSeen = new Date();
+
     await student.save();
 
     return res.json({
@@ -51,7 +52,7 @@ router.post("/captive/login", async (req, res) => {
       wait: true
     });
   } catch (e) {
-    console.error(e);
+    console.error("CAPTIVE LOGIN ERROR:", e);
     res.status(500).json({ status: "error" });
   }
 });

@@ -1,44 +1,29 @@
 const express = require("express");
 const Student = require("../models/Student");
+const { isNowInAnyShift } = require("../utils/time.utils");
+const { hashMac } = require("../utils/macHash");
+
 const router = express.Router();
 
-/* ===== ROUTER → BACKEND (ONE TIME) ===== */
-router.post("/attach-mac", async (req, res) => {
-  const { mac } = req.body;
-  if (!mac) return res.json({ ok: false });
-
-  const student = await Student.findOne({
-    isActive: true,
-    activeMac: null,
-    shiftEndTime: { $gt: new Date() }
-  }).sort({ updatedAt: -1 });
-
-  if (!student) return res.json({ ok: false });
-
-  student.activeMac = mac.toLowerCase();
-  await student.save();
-
-  return res.json({ ok: true });
-});
-
-
-/* ===== ROUTER POLLING ===== */
+/**
+ * Router polls this
+ * Returns MACs that are allowed RIGHT NOW
+ */
 router.get("/approved-macs", async (req, res) => {
-  const now = new Date();
+  try {
+    const students = await Student.find();
 
-  const students = await Student.find({
-    isActive: true,
-    activeMac: { $ne: null },
-    shiftEndTime: { $gt: now }
-  }).select("activeMac shiftEndTime");
+    const allowed = students.filter(s =>
+      isNowInAnyShift(s.shifts)
+    );
 
-  return res.json({
-    success: true,
-    macs: students.map(s => ({
-      mac: s.activeMac,
-      until: s.shiftEndTime
-    }))
-  });
+    res.json({
+      success: true,
+      macs: allowed.map(s => s.macHash)
+    });
+  } catch (e) {
+    res.status(500).json({ success: false });
+  }
 });
 
 module.exports = router;

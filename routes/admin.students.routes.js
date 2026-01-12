@@ -5,17 +5,24 @@ const adminAuth = require("../middleware/admin.middleware");
 
 const router = express.Router();
 
-/* =========================================================
-   CREATE STUDENT (ADMIN)
-   ========================================================= */
+const macRegex = /^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i;
+
+/* ================= CREATE STUDENT ================= */
 router.post("/", adminAuth, async (req, res, next) => {
   try {
     const { name, mobile, password, activeMac, shifts } = req.body;
 
-    if (!name || !mobile || !activeMac || !shifts?.length) {
+    if (!name || !mobile || !activeMac || !Array.isArray(shifts) || !shifts.length) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields"
+      });
+    }
+
+    if (!macRegex.test(activeMac)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid MAC address"
       });
     }
 
@@ -27,50 +34,50 @@ router.post("/", adminAuth, async (req, res, next) => {
       });
     }
 
-    const hashed = password
+    const hashedPassword = password
       ? await bcrypt.hash(password, 10)
       : null;
 
     await Student.create({
       name,
       mobile,
-      password: hashed,
+      password: hashedPassword,
       activeMac: activeMac.toLowerCase(),
-      shifts
+      shifts,
+      isActive: false   // 🔥 IMPORTANT
     });
 
     return res.json({ success: true });
   } catch (err) {
-    return next(err);
+    next(err);
   }
 });
 
-/* =========================================================
-   LIST STUDENTS (ADMIN)
-   ========================================================= */
+/* ================= LIST STUDENTS ================= */
 router.get("/", adminAuth, async (req, res, next) => {
   try {
     const students = await Student.find().select("-password");
-    return res.json(students);
+    res.json(students);
   } catch (err) {
-    return next(err);
+    next(err);
   }
 });
 
-/* =========================================================
-   UPDATE STUDENT (ADMIN)
-   ========================================================= */
+/* ================= UPDATE STUDENT ================= */
 router.put("/:id", adminAuth, async (req, res, next) => {
   try {
     const { shifts, password, activeMac } = req.body;
-
     const update = {};
 
-    if (Array.isArray(shifts)) {
-      update.shifts = shifts;
-    }
+    if (Array.isArray(shifts)) update.shifts = shifts;
 
     if (activeMac) {
+      if (!macRegex.test(activeMac)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid MAC address"
+        });
+      }
       update.activeMac = activeMac.toLowerCase();
     }
 
@@ -79,22 +86,19 @@ router.put("/:id", adminAuth, async (req, res, next) => {
     }
 
     await Student.findByIdAndUpdate(req.params.id, update);
-
-    return res.json({ success: true });
+    res.json({ success: true });
   } catch (err) {
-    return next(err);
+    next(err);
   }
 });
 
-/* =========================================================
-   DELETE STUDENT (ADMIN)
-   ========================================================= */
+/* ================= DELETE STUDENT ================= */
 router.delete("/:id", adminAuth, async (req, res, next) => {
   try {
     await Student.findByIdAndDelete(req.params.id);
-    return res.json({ success: true });
+    res.json({ success: true });
   } catch (err) {
-    return next(err);
+    next(err);
   }
 });
 

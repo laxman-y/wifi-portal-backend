@@ -4,21 +4,23 @@ const router = express.Router();
 
 /* ===== ROUTER → BACKEND (ONE TIME) ===== */
 router.post("/attach-mac", async (req, res) => {
-  const { mac } = req.body;
-  if (!mac) return res.json({ ok: false });
+  const { ip, mac } = req.body;
+  if (!ip || !mac) return res.json({ ok: false });
 
   const student = await Student.findOne({
     isActive: true,
-    activeMac: null
-  }).sort({ updatedAt: -1 });
+    pendingIp: ip
+  });
 
   if (!student) return res.json({ ok: false });
 
   student.activeMac = mac.toLowerCase();
+  student.pendingIp = null;
   await student.save();
 
   return res.json({ ok: true });
 });
+
 
 /* ===== ROUTER POLLING ===== */
 router.get("/approved-macs", async (req, res) => {

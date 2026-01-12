@@ -10,10 +10,14 @@ function getISTMinutes() {
   return ist.getHours() * 60 + ist.getMinutes();
 }
 
-function isShiftActive(shifts) {
+function isShiftActive(shifts = []) {
+  if (!Array.isArray(shifts) || shifts.length === 0) return false;
+
   const nowMin = getISTMinutes();
 
   return shifts.some(s => {
+    if (!s.start || !s.end) return false;
+
     const [sh, sm] = s.start.split(":").map(Number);
     const [eh, em] = s.end.split(":").map(Number);
 
@@ -33,7 +37,9 @@ function isShiftActive(shifts) {
 /* ================= APPROVED MACS ================= */
 router.get("/approved-macs", async (req, res) => {
   try {
-    const students = await Student.find();
+    const students = await Student.find({
+      macHash: { $exists: true, $ne: null }
+    }).select("macHash shifts");
 
     const approved = students
       .filter(s => isShiftActive(s.shifts))

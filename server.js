@@ -47,6 +47,8 @@ app.use("/api/router", routerRoutes);
 app.use("/api/router", require("./routes/router.routes"));
 app.use("/api/admin/auth", require("./routes/admin.auth.routes"));
 app.use("/api/admin/students", require("./routes/admin.students.routes"));
+app.use("/api/test", require("./routes/test.routes"));
+
 
 /* -------------------- ERROR HANDLER -------------------- */
 // Prevents ERR_HTTP_HEADERS_SENT crashes

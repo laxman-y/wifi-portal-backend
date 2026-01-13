@@ -1,9 +1,8 @@
 const express = require("express");
 const Student = require("../models/Student");
-
 const router = express.Router();
 
-/* ===== IST HELPERS ===== */
+/* ===== TIME HELPERS (IST) ===== */
 function getISTMinutes() {
   const now = new Date();
   const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
@@ -18,7 +17,7 @@ function isShiftActive(shifts) {
     const [eh, em] = s.end.split(":").map(Number);
 
     const start = sh * 60 + sm;
-    const end = eh * 60 + em;
+    const end   = eh * 60 + em;
 
     // Normal shift
     if (start <= end) {
@@ -30,24 +29,23 @@ function isShiftActive(shifts) {
   });
 }
 
-/* ===== APPROVED MAC HASHES ===== */
+/* ===== ROUTER POLL ===== */
 router.get("/approved-macs", async (req, res) => {
   try {
     const students = await Student.find();
 
-    const approvedHashes = students
-      .filter(s => s.macHash && isShiftActive(s.shifts))
-      .map(s => s.macHash);
+    const macs = students
+      .filter(s => isShiftActive(s.shifts))
+      .map(s => s.mac);
 
-    return res.json({
+    res.json({
       success: true,
-      macs: approvedHashes
+      macs
     });
   } catch (err) {
-    console.error("APPROVED MAC ERROR:", err);
-    return res.status(500).json({ success: false });
+    console.error("approved-macs error:", err);
+    res.status(500).json({ success: false });
   }
 });
-
 
 module.exports = router;

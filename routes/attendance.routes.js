@@ -12,56 +12,51 @@ function getISTDate() {
 
 /* ================= ENTRY ================= */
 router.post("/entry", async (req, res) => {
-  try {
-    const { mac } = req.body;
-    if (!mac) return res.json({ success: false });
+  const { mac } = req.body;
+  if (!mac) return res.json({ ok: false });
 
-    const today = getISTDate();
+  const today = new Date().toISOString().slice(0, 10);
 
-    let doc = await Attendance.findOne({ mac, date: today });
+  let record = await Attendance.findOne({ mac, date: today });
 
-    if (!doc) {
-      doc = await Attendance.create({
-        mac,
-        date: today,
-        entries: [{ entryTime: new Date() }]
-      });
-    } else {
-      const last = doc.entries[doc.entries.length - 1];
-      if (!last || last.exitTime) {
-        doc.entries.push({ entryTime: new Date() });
-        await doc.save();
-      }
-    }
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("ENTRY ERROR:", err);
-    res.status(500).json({ success: false });
+  if (!record) {
+    record = await Attendance.create({
+      mac,
+      date: today,
+      entries: []
+    });
   }
+
+  const last = record.entries[record.entries.length - 1];
+
+  // 🔥 CREATE NEW ENTRY ONLY IF LAST IS CLOSED
+  if (!last || last.exitTime) {
+    record.entries.push({ entryTime: new Date() });
+    await record.save();
+  }
+
+  res.json({ ok: true });
 });
 
 /* ================= EXIT ================= */
 router.post("/exit", async (req, res) => {
-  try {
-    const { mac } = req.body;
-    if (!mac) return res.json({ success: false });
+  const { mac } = req.body;
+  if (!mac) return res.json({ ok: false });
 
-    const today = getISTDate();
-    const doc = await Attendance.findOne({ mac, date: today });
-    if (!doc) return res.json({ success: false });
+  const today = new Date().toISOString().slice(0, 10);
 
-    const last = doc.entries[doc.entries.length - 1];
-    if (last && !last.exitTime) {
-      last.exitTime = new Date();
-      await doc.save();
-    }
+  const record = await Attendance.findOne({ mac, date: today });
+  if (!record) return res.json({ ok: false });
 
-    res.json({ success: true });
-  } catch (err) {
-    console.error("EXIT ERROR:", err);
-    res.status(500).json({ success: false });
+  const last = record.entries[record.entries.length - 1];
+
+  // 🔥 CLOSE ONLY IF OPEN
+  if (last && !last.exitTime) {
+    last.exitTime = new Date();
+    await record.save();
   }
+
+  res.json({ ok: true });
 });
 
 module.exports = router;

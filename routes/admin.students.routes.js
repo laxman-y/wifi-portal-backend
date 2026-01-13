@@ -1,5 +1,4 @@
 const express = require("express");
-const crypto = require("crypto");
 const Student = require("../models/Student");
 const adminAuth = require("../middleware/admin.middleware");
 
@@ -7,9 +6,7 @@ const router = express.Router();
 
 const macRegex = /^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i;
 
-/* =========================================================
-   CREATE STUDENT (ADMIN)
-   ========================================================= */
+/* ================= CREATE STUDENT ================= */
 router.post("/", adminAuth, async (req, res) => {
   try {
     const { name, mobile, mac, shifts } = req.body;
@@ -24,7 +21,7 @@ router.post("/", adminAuth, async (req, res) => {
     if (!macRegex.test(mac)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid MAC address format"
+        message: "Invalid MAC address"
       });
     }
 
@@ -32,90 +29,54 @@ router.post("/", adminAuth, async (req, res) => {
     if (exists) {
       return res.status(400).json({
         success: false,
-        message: "Student with this mobile already exists"
+        message: "Student already exists"
       });
     }
-
-    const macHash = crypto
-      .createHash("sha256")
-      .update(mac.toLowerCase())
-      .digest("hex");
 
     await Student.create({
       name,
       mobile,
-      macHash,
+      mac: mac.toLowerCase(),
       shifts
     });
 
-    return res.json({ success: true });
+    res.json({ success: true });
   } catch (err) {
-    console.error("CREATE STUDENT ERROR:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 });
 
-/* =========================================================
-   LIST STUDENTS (ADMIN)
-   ========================================================= */
+/* ================= LIST STUDENTS ================= */
 router.get("/", adminAuth, async (req, res) => {
-  try {
-    const students = await Student.find().select("-macHash");
-    return res.json(students);
-  } catch (err) {
-    console.error("LIST STUDENTS ERROR:", err);
-    return res.status(500).json({ success: false });
-  }
+  const students = await Student.find();
+  res.json(students);
 });
 
-/* =========================================================
-   UPDATE STUDENT (ADMIN)
-   ========================================================= */
+/* ================= UPDATE STUDENT ================= */
 router.put("/:id", adminAuth, async (req, res) => {
-  try {
-    const { mac, shifts } = req.body;
-    const update = {};
+  const update = {};
+  const { mac, shifts } = req.body;
 
-    if (Array.isArray(shifts) && shifts.length) {
-      update.shifts = shifts;
+  if (mac) {
+    if (!macRegex.test(mac)) {
+      return res.status(400).json({ success: false, message: "Invalid MAC" });
     }
-
-    if (mac) {
-      if (!macRegex.test(mac)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid MAC address format"
-        });
-      }
-
-      update.macHash = crypto
-        .createHash("sha256")
-        .update(mac.toLowerCase())
-        .digest("hex");
-    }
-
-    await Student.findByIdAndUpdate(req.params.id, update);
-    return res.json({ success: true });
-  } catch (err) {
-    console.error("UPDATE STUDENT ERROR:", err);
-    return res.status(500).json({ success: false });
+    update.mac = mac.toLowerCase();
   }
+
+  if (Array.isArray(shifts)) {
+    update.shifts = shifts;
+  }
+
+  await Student.findByIdAndUpdate(req.params.id, update);
+  res.json({ success: true });
 });
 
-/* =========================================================
-   DELETE STUDENT (ADMIN)
-   ========================================================= */
+/* ================= DELETE STUDENT ================= */
 router.delete("/:id", adminAuth, async (req, res) => {
-  try {
-    await Student.findByIdAndDelete(req.params.id);
-    return res.json({ success: true });
-  } catch (err) {
-    console.error("DELETE STUDENT ERROR:", err);
-    return res.status(500).json({ success: false });
-  }
+  await Student.findByIdAndDelete(req.params.id);
+  res.json({ success: true });
 });
 
 module.exports = router;

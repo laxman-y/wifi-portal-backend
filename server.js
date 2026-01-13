@@ -6,6 +6,9 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth.routes");
 const sessionRoutes = require("./routes/session.routes");
 const routerRoutes = require("./routes/router.routes");
+const adminAttendanceRoutes = require("./routes/admin.attendance.routes");
+
+
 
 
 const app = express();
@@ -49,6 +52,7 @@ app.use("/api/admin/auth", require("./routes/admin.auth.routes"));
 app.use("/api/admin/students", require("./routes/admin.students.routes"));
 app.use("/api/attendance", require("./routes/attendance.routes"));
 app.use("/api/admin/attendance", attendanceAdminRoutes);
+
 
 app.use("/api/test", require("./routes/test.routes"));
 

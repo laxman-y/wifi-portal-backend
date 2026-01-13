@@ -47,13 +47,10 @@ app.get("/__health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/session", sessionRoutes);
 app.use("/api/router", routerRoutes);
-app.use("/api/router", require("./routes/router.routes"));
 app.use("/api/admin/auth", require("./routes/admin.auth.routes"));
 app.use("/api/admin/students", require("./routes/admin.students.routes"));
 app.use("/api/attendance", require("./routes/attendance.routes"));
-app.use("/api/admin/attendance", attendanceAdminRoutes);
-
-
+app.use("/api/admin/attendance", adminAttendanceRoutes);
 app.use("/api/test", require("./routes/test.routes"));
 
 

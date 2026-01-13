@@ -36,7 +36,7 @@ router.get("/approved-macs", async (req, res) => {
     const students = await Student.find();
 
     const approvedHashes = students
-      .filter(s => isShiftActive(s.shifts))
+      .filter(s => s.macHash && isShiftActive(s.shifts))
       .map(s => s.macHash);
 
     return res.json({
@@ -48,5 +48,6 @@ router.get("/approved-macs", async (req, res) => {
     return res.status(500).json({ success: false });
   }
 });
+
 
 module.exports = router;

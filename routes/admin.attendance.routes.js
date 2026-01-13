@@ -8,25 +8,29 @@ const router = express.Router();
 
 router.get("/", adminAuth, async (req, res) => {
   try {
-    const records = await Attendance.find().sort({ date: -1 });
+    const attendance = await Attendance.find().sort({ date: -1 });
 
-    const students = await Student.find();
+    const students = await Student.find().select("name mac");
 
+    // Build MAC → NAME map
     const macToName = {};
     students.forEach(s => {
-      macToName[s.macHash] = s.name;
+      if (s.mac) {
+        macToName[s.mac.toLowerCase()] = s.name;
+      }
     });
 
-    const result = records.map(r => ({
-      student: macToName[r.mac] || "Unknown",
-      mac: r.mac,
-      date: r.date,
-      entries: r.entries
+    const result = attendance.map(a => ({
+      _id: a._id,
+      mac: a.mac,
+      name: macToName[a.mac.toLowerCase()] || "Unknown",
+      date: a.date,
+      entries: a.entries
     }));
 
     res.json(result);
   } catch (err) {
-    console.error(err);
+    console.error("ADMIN ATTENDANCE ERROR:", err);
     res.status(500).json({ success: false });
   }
 });

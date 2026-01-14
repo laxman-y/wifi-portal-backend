@@ -3,13 +3,11 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
+/* -------------------- ROUTES IMPORT -------------------- */
 const authRoutes = require("./routes/auth.routes");
 const sessionRoutes = require("./routes/session.routes");
 const routerRoutes = require("./routes/router.routes");
 const adminAttendanceRoutes = require("./routes/admin.attendance.routes");
-
-
-
 
 const app = express();
 
@@ -17,7 +15,7 @@ const app = express();
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow captive portal & non-browser clients
+      // Allow captive portal, router, curl, wget
       if (
         !origin ||
         origin.startsWith("http://192.168.") ||
@@ -33,10 +31,11 @@ app.use(
   })
 );
 
+/* -------------------- BODY PARSERS (CRITICAL) -------------------- */
+app.use(express.json());                      // JSON (React, router)
+app.use(express.urlencoded({ extended: true })); // splash.html forms
 
-app.use(express.json());
-
-/* -------------------- ROUTES -------------------- */
+/* -------------------- HEALTH -------------------- */
 app.get("/__health", (req, res) => {
   res.json({
     status: "ok",
@@ -44,24 +43,24 @@ app.get("/__health", (req, res) => {
   });
 });
 
+/* -------------------- API ROUTES -------------------- */
 app.use("/api/auth", authRoutes);
 app.use("/api/session", sessionRoutes);
 app.use("/api/router", routerRoutes);
+
 app.use("/api/admin/auth", require("./routes/admin.auth.routes"));
 app.use("/api/admin/students", require("./routes/admin.students.routes"));
+
 app.use("/api/attendance", require("./routes/attendance.routes"));
 app.use("/api/admin/attendance", adminAttendanceRoutes);
+
 app.use("/api/test", require("./routes/test.routes"));
 
-
 /* -------------------- ERROR HANDLER -------------------- */
-// Prevents ERR_HTTP_HEADERS_SENT crashes
 app.use((err, req, res, next) => {
-  console.error("Unhandled Error:", err.message);
+  console.error("Unhandled Error:", err);
 
-  if (res.headersSent) {
-    return next(err);
-  }
+  if (res.headersSent) return next(err);
 
   res.status(500).json({ message: "Internal Server Error" });
 });

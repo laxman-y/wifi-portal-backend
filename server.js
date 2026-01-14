@@ -56,6 +56,10 @@ app.use("/api/admin/attendance", adminAttendanceRoutes);
 
 app.use("/api/test", require("./routes/test.routes"));
 
+app.use("/api/v2/captive", require("./routes/v2.captive.routes"));
+app.use("/api/v2/router", require("./routes/v2.router.routes"));
+
+
 /* -------------------- ERROR HANDLER -------------------- */
 app.use((err, req, res, next) => {
   console.error("Unhandled Error:", err);

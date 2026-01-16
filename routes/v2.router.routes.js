@@ -3,27 +3,29 @@ const StudentV2 = require("../models/StudentV2");
 
 const router = express.Router();
 
-function nowMinutesIST() {
-  const d = new Date(Date.now() + 5.5 * 3600000);
-  return d.getHours() * 60 + d.getMinutes();
-}
+function isShiftActive(shifts) {
+  if (!shifts.length) return false;
 
-function shiftActive(shifts) {
-  const now = nowMinutesIST();
+  const now = new Date();
+  const mins = now.getHours() * 60 + now.getMinutes();
+
   return shifts.some(s => {
     const [sh, sm] = s.start.split(":").map(Number);
     const [eh, em] = s.end.split(":").map(Number);
-    const st = sh * 60 + sm;
-    const en = eh * 60 + em;
-    return st <= en ? now >= st && now <= en : now >= st || now <= en;
+    const start = sh * 60 + sm;
+    const end   = eh * 60 + em;
+
+    return start <= end
+      ? mins >= start && mins <= end
+      : mins >= start || mins <= end;
   });
 }
 
 router.get("/approved-macs", async (req, res) => {
-  const students = await StudentV2.find({ mac: { $ne: null } });
+  const students = await StudentV2.find();
 
   const macs = students
-    .filter(s => shiftActive(s.shifts))
+    .filter(s => isShiftActive(s.shifts))
     .map(s => s.mac);
 
   res.json({ macs });

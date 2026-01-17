@@ -1,5 +1,5 @@
 const express = require("express");
-const Student = require("../models/Student");
+const Student = require("../models/StudentV2"); // ✅ ONLY CHANGE
 const router = express.Router();
 
 /* ===== TIME HELPERS (IST) ===== */

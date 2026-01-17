@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const StudentV2Schema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-
     // 🔐 silently bound
     mac: { type: String, required: true, unique: true },
 

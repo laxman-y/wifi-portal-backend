@@ -12,7 +12,7 @@ router.post("/login", async (req, res) => {
     }
 
     const cleanMac = mac.toLowerCase().trim();
-
+console.log("LOGIN ATTEMPT:", name, cleanMac);
     // ✅ ONE MAC = ONE STUDENT (atomic + safe)
     const student = await StudentV2.findOneAndUpdate(
       { mac: cleanMac },                 // 🔑 UNIQUE KEY

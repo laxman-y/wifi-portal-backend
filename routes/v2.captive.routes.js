@@ -11,21 +11,26 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ success: false });
     }
 
-    const cleanMac = mac.toLowerCase();
+    const cleanMac = mac.toLowerCase().trim();
 
-    // 🔒 Bind once per device
-    let student = await StudentV2.findOne({ mac: cleanMac });
-
-    if (!student) {
-      student = await StudentV2.create({
-        name,
-        mac: cleanMac,
-        shifts: []
-      });
-    }
-
-    student.lastSeen = new Date();
-    await student.save();
+    // ✅ ONE MAC = ONE STUDENT (atomic + safe)
+    const student = await StudentV2.findOneAndUpdate(
+      { mac: cleanMac },                 // 🔑 UNIQUE KEY
+      {
+        $setOnInsert: {
+          mac: cleanMac,
+          name,
+          shifts: []
+        },
+        $set: {
+          lastSeen: new Date()
+        }
+      },
+      {
+        upsert: true,    // create if not exists
+        new: true        // return updated doc
+      }
+    );
 
     return res.json({
       success: true,

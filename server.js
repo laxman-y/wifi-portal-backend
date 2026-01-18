@@ -58,6 +58,8 @@ app.use("/api/test", require("./routes/test.routes"));
 
 app.use("/api/v2/captive", require("./routes/v2.captive.routes"));
 app.use("/api/v2/router", require("./routes/v2.router.routes"));
+app.use("/api/admin", require("./routes/admin.toggle.routes"));
+app.use("/api/router", require("./routes/router.poll.routes"));
 app.use("/api/admin", require("./routes/admin.router"));
 
 /* -------------------- ERROR HANDLER -------------------- */

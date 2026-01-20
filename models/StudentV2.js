@@ -8,7 +8,7 @@ const StudentV2Schema = new mongoose.Schema(
 
       // 🆕 Batch number (1, 2, 3, ...)
     batchNo: {
-      type: Number,
+     type: String,
       required: false,   // keep optional to avoid breaking old data
       index: true        // useful for filtering later
     },

@@ -9,7 +9,7 @@ const macRegex = /^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i;
 /* ================= CREATE STUDENT ================= */
 router.post("/", adminAuth, async (req, res) => {
   try {
-    const { name, mac, shifts } = req.body;
+    const { name, mac, shifts, batchNo } = req.body;
 
     if (!name || !mac || !Array.isArray(shifts) || !shifts.length) {
       return res.status(400).json({
@@ -43,7 +43,8 @@ router.post("/", adminAuth, async (req, res) => {
     await Student.create({
       name,
       mac: mac.toLowerCase(),
-      shifts
+      shifts,
+      batchNo // 🆕 added
     });
 
     res.json({ success: true });
@@ -62,7 +63,7 @@ router.get("/", adminAuth, async (req, res) => {
 /* ================= UPDATE STUDENT ================= */
 router.put("/:id", adminAuth, async (req, res) => {
   const update = {};
-  const { mac, shifts } = req.body;
+  const { mac, shifts, batchNo } = req.body;
 
   if (mac) {
     if (!macRegex.test(mac)) {
@@ -79,6 +80,10 @@ router.put("/:id", adminAuth, async (req, res) => {
       });
     }
     update.shifts = shifts;
+  }
+
+  if (batchNo !== undefined) {
+    update.batchNo = batchNo; // 🆕 added
   }
 
   await Student.findByIdAndUpdate(req.params.id, update);

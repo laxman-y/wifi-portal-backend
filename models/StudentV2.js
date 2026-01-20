@@ -6,6 +6,13 @@ const StudentV2Schema = new mongoose.Schema(
     // 🔐 silently bound
     mac: { type: String, required: true, unique: true },
 
+      // 🆕 Batch number (1, 2, 3, ...)
+    batchNo: {
+      type: Number,
+      required: false,   // keep optional to avoid breaking old data
+      index: true        // useful for filtering later
+    },
+
     shifts: [
       {
         start: String, // "06:00"

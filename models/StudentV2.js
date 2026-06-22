@@ -13,6 +13,13 @@ const StudentV2Schema = new mongoose.Schema(
       index: true        // useful for filtering later
     },
 
+
+    mobile: {
+    type: String,
+    default: ""
+  },
+
+    
     shifts: [
       {
         start: String, // "06:00"
